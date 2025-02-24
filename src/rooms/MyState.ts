@@ -5,6 +5,7 @@ export class Player extends Schema {
     @type("number") y: number;
     @type("number") vx: number;
     @type("number") vy: number;
+    @type("number") angle: number;
     @type("string") name: string;
 }
 

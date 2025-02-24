@@ -48,15 +48,19 @@ export class MyRoom extends Room<MyState> {
       }
     });
 
-    this.onMessage(0, (client, payload) => {
-      // get reference to the player who sent the message
-      const player = this.state.players.get(client.sessionId);
+    Matter.Events.on(this.engine, "collisionStart", (event) => {
+      this.handleCollisions(event)
+    })
 
-      player.x = payload.x;
-      player.y = payload.y;
-      player.vx = payload.vx;
-      player.vy = payload.vy;
-    });
+    // this.onMessage(0, (client, payload) => {
+    //   // get reference to the player who sent the message
+    //   const player = this.state.players.get(client.sessionId);
+
+    //   player.x = payload.x;
+    //   player.y = payload.y;
+    //   player.vx = payload.vx;
+    //   player.vy = payload.vy;
+    // });
 
     this.onMessage('applyStarSteering', (client, payload) => {
       // get reference to the player who sent the message
@@ -102,7 +106,7 @@ export class MyRoom extends Room<MyState> {
 
         } else {
           // Если скорость ниже максимума, просто добавляем силу
-          Matter.Body.applyForce(star.body, { x: star.body.position.x + 1, y: star.body.position.y }, { x: forceX, y: forceY })
+          Matter.Body.applyForce(star.body, { x: star.body.position.x + 0.01, y: star.body.position.y }, { x: forceX, y: forceY })
         }
       }
 
@@ -113,23 +117,30 @@ export class MyRoom extends Room<MyState> {
       const player = this.state.players.get(client.sessionId);
       const star = this.entities.get(client.sessionId);
 
-      let dashForce = 1.5;
+      star.dash();
 
-      const velocity = star.body.velocity;
-      const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
+    });
 
-      if (speed > 0) {
-        const direction = { x: velocity.x / speed, y: velocity.y / speed };
+    this.onMessage('shoot4', (client, payload) => {
 
-        // Применяем силу в этом направлении
-        Matter.Body.applyForce(star.body, star.body.position, {
-          x: direction.x * dashForce,
-          y: direction.y * dashForce
-        });
+      const player = this.state.players.get(client.sessionId);
+      const star = this.entities.get(client.sessionId);
 
-      } else {
-        Matter.Body.applyForce(star.body, star.body.position, { x: dashForce, y: 0 });
-      }
+      const shots = star.shoot4();
+
+      shots.forEach((shot: any) => {
+
+        const entity = new Entity();
+        entity.x = shot.position.x;
+        entity.y = shot.position.y;
+        const entityId = uuidv4();
+        this.state.entities.set(entityId, entity);
+        this.entities.set(entityId, shot);
+      });
+
+      this.broadcast("playerShooted4", {
+        ownerId: client.sessionId
+      });
 
     });
   }
@@ -138,6 +149,7 @@ export class MyRoom extends Room<MyState> {
   fixedTick(fixedTimeStep: number) {
 
     Matter.Engine.update(this.engine, fixedTimeStep);
+
     // Двигаем объект (пример: небольшая сила влево)
     //Matter.Body.applyForce(this.starBody, this.starBody.position, { x: -0.0005, y: 0 });
 
@@ -151,6 +163,7 @@ export class MyRoom extends Room<MyState> {
       player.y = entity.body.position.y;
       player.vx = entity.body.velocity.x;
       player.vy = entity.body.velocity.y;
+      player.angle = entity.body.angle;
 
       //Ограничение карты
       const mapRadius = 4000;
@@ -175,6 +188,18 @@ export class MyRoom extends Room<MyState> {
 
     });
 
+    this.state.entities.forEach((entity, key) => {
+      const body = this.entities.get(key);
+
+      if (body) {
+        entity.x = body.position.x;
+        entity.y = body.position.y;
+      } else {
+        this.state.entities.delete(key);
+      }
+
+    });
+
   }
 
 
@@ -190,6 +215,7 @@ export class MyRoom extends Room<MyState> {
     player.x = (Math.random() * mapWidth);
     player.y = (Math.random() * mapHeight);
     player.vx = 0; player.vy = 0;
+    player.angle = 0;
 
     let name;
     if (this.countClients <= this.names.length) {
@@ -206,6 +232,7 @@ export class MyRoom extends Room<MyState> {
     // entity.y = (Math.random() * mapHeight);
 
     const star = new Star(this.world, player.x, player.y);
+    star.clientId = client.sessionId;
 
     const uniqueId = client.sessionId;
     this.entities.set(uniqueId, star);
@@ -226,6 +253,38 @@ export class MyRoom extends Room<MyState> {
 
   onDispose() {
     console.log("room", this.roomId, "disposing...");
+  }
+
+  handleCollisions(event: Matter.IEventCollision<Matter.Engine>) {
+    event.pairs.forEach((pair) => {
+      const bodyA = pair.bodyA;
+      const bodyB = pair.bodyB;
+
+      console.log(`Collision detected between ${bodyA.label} and ${bodyB.label}`);
+
+      // if ((bodyB.label === 'particle' && bodyA.label === 'star')) {
+
+      //   const particle = bodyB.gameObject; // Получаем объект Phaser, связанный с телом1
+      //   //this.scene.get('UIScene').events.emit('updateScore', 20);// Добавить 1 очко
+
+      //   if (particle) {
+      //     particle.destroy(); // Удаляем весь объект (включая тело и визуальную часть)
+      //   }
+
+      //   // const star = bodyA.gameObject; // Получаем объект Phaser, связанный с телом2
+      //   // if (star) {
+      //   //     star.minusHealth(); // Вызываем метод death() объекта star
+      //   // }
+      // }
+
+      if ((bodyA.label === 'star' && bodyB.label === 'shot' && bodyB.owner !== bodyA.owner)) {
+        bodyA.owner.minusHealth();
+        this.broadcast("playerMinusHealth", {
+          ownerId: bodyA.owner.clientId
+        });
+      }
+
+    });
   }
 
 }
