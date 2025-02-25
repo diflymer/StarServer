@@ -162,7 +162,13 @@ export class MyRoom extends Room<MyState> {
       this.entities.set(entityId, shot);
 
       this.broadcast("playerShooted", {
-        ownerId: client.sessionId
+        ownerId: client.sessionId,
+        shot: {
+          x: shot.position.x,
+          y: shot.position.y,
+          vx: shot.velocity.x,
+          vy: shot.velocity.y
+        }
       });
 
     });
