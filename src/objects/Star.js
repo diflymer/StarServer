@@ -113,8 +113,6 @@ export default class Star {
 
     }
 
-
-
     dash() {
         const dashForce = 1.5;
 
@@ -170,7 +168,7 @@ export default class Star {
 
             Matter.Body.setAngle(shot, angle);
             //shot.setRotation(angle);
-            
+
             setTimeout(() => {
                 Matter.World.remove(this.world, shot);
             }, 1000);
@@ -179,10 +177,48 @@ export default class Star {
 
 
         }
-        
-        return shots;
-        
 
+        return shots;
+
+
+    }
+
+    shoot(dist) {
+        const radius = 25; // Радиус окружности вокруг звезды
+
+        const centerX = this.body.position.x; // Центр окружности по X
+        const centerY = this.body.position.y; // Центр окружности по Y
+
+        let isEnemy = true;
+        let angle;
+
+        angle = Math.atan2(dist.y - this.body.position.y, dist.x - this.body.position.x);
+
+        // Вычисляем позицию shot на окружности
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+
+        const shot = Matter.Bodies.circle(x, y, 10);
+        shot.owner = this;
+        shot.label = 'shot';
+        shot.mass = 0.1;
+        shot.frictionAir = 0;
+        shot.frictionStatic = 0;
+
+        Matter.World.add(this.world, shot);
+        // Устанавливаем скорость
+        
+        Matter.Body.setAngularVelocity(shot, 0.1);
+
+        const speed = 10; // Начальная скорость пули
+
+        Matter.Body.setVelocity(shot, { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed });
+
+        setTimeout(() => {
+            Matter.World.remove(this.world, shot);
+        }, 3000);
+
+        return shot;
     }
 
     minusHealth() {
@@ -195,7 +231,9 @@ export default class Star {
             this.health--;
 
         } else {
-            Matter.Body.setPosition(this.body, { x: 0, y: 0 });
+            const x = Math.floor(Math.random() * (4000 - (-4000) + 1)) + (-4000);
+            const y = Math.floor(Math.random() * (4000 - (-4000) + 1)) + (-4000);
+            Matter.Body.setPosition(this.body, { x, y });
             this.clearForce();
             this.health = this.maxHealth;
         }

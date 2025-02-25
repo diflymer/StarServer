@@ -7,6 +7,7 @@ export class Player extends Schema {
     @type("number") vy: number;
     @type("number") angle: number;
     @type("string") name: string;
+    @type("number") score: number;
 }
 
 export class Entity extends Schema {

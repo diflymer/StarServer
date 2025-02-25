@@ -17,7 +17,7 @@ export class MyRoom extends Room<MyState> {
   starBody!: Star;
   gravity!: Gravity;
 
-  maxClients = 8;
+  maxClients = 16;
   countClients = 0;
 
   names = ['Водичка', 'Звезда', 'Огонёк', 'Камень', 'Петух', 'Тюремщик', 'Водка', 'Коллайдер']
@@ -63,52 +63,55 @@ export class MyRoom extends Room<MyState> {
     // });
 
     this.onMessage('applyStarSteering', (client, payload) => {
-      // get reference to the player who sent the message
-      const player = this.state.players.get(client.sessionId);
 
+      const player = this.state.players.get(client.sessionId);
       const star = this.entities.get(client.sessionId);
 
-      //FORCE
-      const maxSpeed = 1.6; // Максимальная скорость
-      const baseForce = 0.02; // Базовая сила
+      Matter.Body.applyForce(star.body, {x: star.body.position.x + 0.01, y: star.body.position.y}, { x: payload.forceX, y: payload.forceY });
+      // // get reference to the player who sent the message
 
-      let velocity = star.body.velocity;
-      let currentSpeed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
 
-      // Вектор направления от джойстика
-      let targetX = payload.x;
-      let targetY = payload.y;
-      let targetLength = Math.sqrt(targetX * targetX + targetY * targetY);
+      // //FORCE
+      // const maxSpeed = 1.6; // Максимальная скорость
+      // const baseForce = 0.02; // Базовая сила
 
-      if (targetLength > 0) {
-        targetX /= targetLength;
-        targetY /= targetLength;
+      // let velocity = star.body.velocity;
+      // let currentSpeed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
 
-        // Масштабируем силу в зависимости от длины джойстика
-        let forceMultiplier = targetLength; // Ограничиваем максимум 1
-        let forceMagnitude = baseForce * forceMultiplier; // Чем дальше джойстик, тем больше сила
+      // // Вектор направления от джойстика
+      // let targetX = payload.x;
+      // let targetY = payload.y;
+      // let targetLength = Math.sqrt(targetX * targetX + targetY * targetY);
 
-        // Вычисляем силу в направлении джойстика
-        let forceX = targetX * forceMagnitude;
-        let forceY = targetY * forceMagnitude;
+      // if (targetLength > 0) {
+      //   targetX /= targetLength;
+      //   targetY /= targetLength;
 
-        // Если скорость превышает максимум, перенаправляем её
-        if (currentSpeed >= maxSpeed) {
-          let normalizedVX = velocity.x / currentSpeed;
-          let normalizedVY = velocity.y / currentSpeed;
+      //   // Масштабируем силу в зависимости от длины джойстика
+      //   let forceMultiplier = targetLength; // Ограничиваем максимум 1
+      //   let forceMagnitude = baseForce * forceMultiplier; // Чем дальше джойстик, тем больше сила
 
-          // Вычисляем разницу между текущим направлением и целевым
-          let adjustForceX = (targetX - normalizedVX) * forceMagnitude;
-          let adjustForceY = (targetY - normalizedVY) * forceMagnitude;
+      //   // Вычисляем силу в направлении джойстика
+      //   let forceX = targetX * forceMagnitude;
+      //   let forceY = targetY * forceMagnitude;
 
-          // Корректируем направление движения
-          Matter.Body.applyForce(star.body, star.body.position, { x: adjustForceX, y: adjustForceY });
+      //   // Если скорость превышает максимум, перенаправляем её
+      //   if (currentSpeed >= maxSpeed) {
+      //     let normalizedVX = velocity.x / currentSpeed;
+      //     let normalizedVY = velocity.y / currentSpeed;
 
-        } else {
-          // Если скорость ниже максимума, просто добавляем силу
-          Matter.Body.applyForce(star.body, { x: star.body.position.x + 0.01, y: star.body.position.y }, { x: forceX, y: forceY })
-        }
-      }
+      //     // Вычисляем разницу между текущим направлением и целевым
+      //     let adjustForceX = (targetX - normalizedVX) * forceMagnitude;
+      //     let adjustForceY = (targetY - normalizedVY) * forceMagnitude;
+
+      //     // Корректируем направление движения
+      //     Matter.Body.applyForce(star.body, star.body.position, { x: adjustForceX, y: adjustForceY });
+
+      //   } else {
+      //     // Если скорость ниже максимума, просто добавляем силу
+      //     Matter.Body.applyForce(star.body, { x: star.body.position.x + 0.01, y: star.body.position.y }, { x: forceX, y: forceY })
+      //   }
+      // }
 
     });
 
@@ -143,6 +146,54 @@ export class MyRoom extends Room<MyState> {
       });
 
     });
+
+    this.onMessage('shoot', (client, payload) => {
+
+      const player = this.state.players.get(client.sessionId);
+      const star = this.entities.get(client.sessionId);
+
+      const shot = star.shoot(payload);
+
+      const entity = new Entity();
+      entity.x = shot.position.x;
+      entity.y = shot.position.y;
+      const entityId = uuidv4();
+      this.state.entities.set(entityId, entity);
+      this.entities.set(entityId, shot);
+
+      this.broadcast("playerShooted", {
+        ownerId: client.sessionId
+      });
+
+    });
+
+    this.onMessage('plusScore', (client, score) => {
+
+      const player = this.state.players.get(client.sessionId);
+
+      player.score += score;
+
+      this.broadcast("plusScore", {
+        ownerId: client.sessionId,
+        score: player.score
+      });
+
+    });
+
+    // this.onMessage('startDeathmatch', (client) => {
+
+    //   this.broadcast("startDeathmatch", {
+    //     ownerId: client.sessionId,
+    //     score: player.score
+    //   });
+
+    //   this.state.players.forEach((player, key) => {
+
+    //     player.score = 0;
+
+    //   });
+
+    // });
   }
 
 
@@ -166,7 +217,7 @@ export class MyRoom extends Room<MyState> {
       player.angle = entity.body.angle;
 
       //Ограничение карты
-      const mapRadius = 4000;
+      const mapRadius = 6000;
 
       const starX = entity.body.position.x;
       const starY = entity.body.position.y;
@@ -208,14 +259,25 @@ export class MyRoom extends Room<MyState> {
     console.log(client.sessionId, "joined!");
 
 
-    const mapWidth = 800;
-    const mapHeight = 600;
+    const mapWidth = 4000;
+    const mapHeight = 4000;
 
     const player = new Player();
-    player.x = (Math.random() * mapWidth);
-    player.y = (Math.random() * mapHeight);
+    if (Math.random() < 0.5) {
+      player.x = (Math.random() * mapWidth);
+    } else {
+      player.x = (Math.random() * -mapWidth);
+    }
+    if (Math.random() < 0.5) {
+      player.y = (Math.random() * mapHeight);
+    } else {
+      player.y = (Math.random() * -mapHeight);
+    }
+
+
     player.vx = 0; player.vy = 0;
     player.angle = 0;
+    player.score = 0;
 
     let name;
     if (this.countClients <= this.names.length) {
@@ -260,8 +322,6 @@ export class MyRoom extends Room<MyState> {
       const bodyA = pair.bodyA;
       const bodyB = pair.bodyB;
 
-      console.log(`Collision detected between ${bodyA.label} and ${bodyB.label}`);
-
       // if ((bodyB.label === 'particle' && bodyA.label === 'star')) {
 
       //   const particle = bodyB.gameObject; // Получаем объект Phaser, связанный с телом1
@@ -279,8 +339,15 @@ export class MyRoom extends Room<MyState> {
 
       if ((bodyA.label === 'star' && bodyB.label === 'shot' && bodyB.owner !== bodyA.owner)) {
         bodyA.owner.minusHealth();
+
+        const whoHits = bodyB.owner.clientId;
+        const player = this.state.players.get(whoHits);
+        player.score += 2;
+
         this.broadcast("playerMinusHealth", {
-          ownerId: bodyA.owner.clientId
+          ownerId: bodyA.owner.clientId,
+          whoHitsId: whoHits,
+          whoHitsScore: player.score
         });
       }
 
