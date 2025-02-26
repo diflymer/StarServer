@@ -67,7 +67,7 @@ export class MyRoom extends Room<MyState> {
       const player = this.state.players.get(client.sessionId);
       const star = this.entities.get(client.sessionId);
 
-      Matter.Body.applyForce(star.body, {x: star.body.position.x + 0.01, y: star.body.position.y}, { x: payload.forceX, y: payload.forceY });
+      Matter.Body.applyForce(star.body, { x: star.body.position.x + 0.005, y: star.body.position.y }, { x: payload.forceX, y: payload.forceY });
       // // get reference to the player who sent the message
 
 
@@ -120,7 +120,7 @@ export class MyRoom extends Room<MyState> {
       const player = this.state.players.get(client.sessionId);
       const star = this.entities.get(client.sessionId);
 
-      star.dash();
+      star.dash(payload);
 
     });
 
@@ -222,6 +222,19 @@ export class MyRoom extends Room<MyState> {
       player.vy = entity.body.velocity.y;
       player.angle = entity.body.angle;
 
+      const velocity = entity.body.velocity;
+
+      //Ограничение скорости
+      const maxSpeed = 10; // Лимит скорости
+      let currentSpeed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+
+      const slowDownFactor = 0.98; // Коэффициент замедления (чем ближе к 1, тем плавнее)
+
+      if (currentSpeed > maxSpeed) {
+        let scale = maxSpeed / currentSpeed; // Ограничиваем скорость
+        Matter.Body.setVelocity(entity.body, { x: velocity.x * scale * slowDownFactor, y: velocity.y * scale * slowDownFactor });
+      }
+
       //Ограничение карты
       const mapRadius = 6000;
 
@@ -279,11 +292,6 @@ export class MyRoom extends Room<MyState> {
     } else {
       player.y = (Math.random() * -mapHeight);
     }
-
-
-    player.vx = 0; player.vy = 0;
-    player.angle = 0;
-    player.score = 0;
 
     let name;
     if (this.countClients <= this.names.length) {
@@ -353,7 +361,9 @@ export class MyRoom extends Room<MyState> {
         this.broadcast("playerMinusHealth", {
           ownerId: bodyA.owner.clientId,
           whoHitsId: whoHits,
-          whoHitsScore: player.score
+          whoHitsScore: player.score,
+          hittedHealth: bodyA.owner.health,
+          hittedMaxHealth: bodyA.owner.maxHealth,
         });
       }
 

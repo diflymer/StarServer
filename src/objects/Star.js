@@ -84,7 +84,7 @@ export default class Star {
         this.scene.time.delayedCall(2000, () => {
             this.isImmortal = false;
         });
-        this.scene.events.emit('starHealthChanged', this.health, this.maxHealth);
+        //this.scene.events.emit('starHealthChanged', this.health, this.maxHealth);
 
     }
 
@@ -113,24 +113,35 @@ export default class Star {
 
     }
 
-    dash() {
+    dash(dist) {
         const dashForce = 1.5;
 
         const velocity = this.body.velocity;
         const speed = Math.sqrt(velocity.x ** 2 + velocity.y ** 2);
 
-        if (speed > 0) {
-            const direction = { x: velocity.x / speed, y: velocity.y / speed };
+        const dx = dist.x - this.body.position.x;
+        const dy = dist.y - this.body.position.y;
+        const length = Math.sqrt(dx * dx + dy * dy);
 
-            // Применяем силу в этом направлении
-            Matter.Body.applyForce(this.body, this.body.position, {
-                x: direction.x * dashForce,
-                y: direction.y * dashForce
-            });
+        if (length > 0) {
+            const impulseX = (dx / length) * dashForce;
+            const impulseY = (dy / length) * dashForce;
 
-        } else {
-            Matter.Body.applyForce(this.body, this.body.position, { x: dashForce, y: 0 });
+            Matter.Body.applyForce(this.body, this.body.position, { x: impulseX, y: impulseY });
         }
+
+        // if (speed > 0) {
+        //     const direction = { x: velocity.x / speed, y: velocity.y / speed };
+
+        //     // Применяем силу в этом направлении
+        //     Matter.Body.applyForce(this.body, this.body.position, {
+        //         x: direction.x * dashForce,
+        //         y: direction.y * dashForce
+        //     });
+
+        // } else {
+        //     Matter.Body.applyForce(this.body, this.body.position, { x: dashForce, y: 0 });
+        // }
 
     }
 
@@ -146,7 +157,8 @@ export default class Star {
         const countStars = 20
         for (let i = 1; i <= countStars; i++) {
 
-            const angle = (this.body.angle) + (2 * Math.PI / countStars) * i;
+            // const angle = (this.body.angle) + (2 * Math.PI / countStars) * i;
+            const angle = (2 * Math.PI / countStars) * i;
 
             // Вычисляем позицию shot на окружности
             const x = centerX + radius * Math.cos(angle);
