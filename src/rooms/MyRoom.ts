@@ -52,9 +52,9 @@ export class MyRoom extends Room<MyState> {
       this.handleCollisions(event)
     })
 
-    this.onMessage("ping", (client) => {
+    this.onMessage("ping", (client, clientTimestamp) => {
       // Отправляем ответ "pong" с меткой времени
-      client.send("pong", Date.now());
+      client.send("pong", clientTimestamp);
     });
 
     // this.onMessage(0, (client, payload) => {
