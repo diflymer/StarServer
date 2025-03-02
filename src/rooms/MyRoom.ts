@@ -62,6 +62,14 @@ export class MyRoom extends Room<MyState> {
     //   player.vy = payload.vy;
     // });
 
+    this.onMessage('setName', (client, name) => {
+
+      const player = this.state.players.get(client.sessionId);
+
+      player.name = name;
+
+    });
+
     this.onMessage('applyStarSteering', (client, payload) => {
 
       const player = this.state.players.get(client.sessionId);
@@ -136,6 +144,9 @@ export class MyRoom extends Room<MyState> {
         const entity = new Entity();
         entity.x = shot.position.x;
         entity.y = shot.position.y;
+        entity.vx = shot.velocity.x;
+        entity.vy = shot.velocity.y;
+        entity.type = "shot4";
         const entityId = uuidv4();
         this.state.entities.set(entityId, entity);
         this.entities.set(entityId, shot);
@@ -157,6 +168,9 @@ export class MyRoom extends Room<MyState> {
       const entity = new Entity();
       entity.x = shot.position.x;
       entity.y = shot.position.y;
+      entity.vx = shot.velocity.x;
+      entity.vy = shot.velocity.y;
+      entity.type = "shot";
       const entityId = uuidv4();
       this.state.entities.set(entityId, entity);
       this.entities.set(entityId, shot);
@@ -228,7 +242,7 @@ export class MyRoom extends Room<MyState> {
       const maxSpeed = 10; // Лимит скорости
       let currentSpeed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
 
-      const slowDownFactor = 0.98; // Коэффициент замедления (чем ближе к 1, тем плавнее)
+      const slowDownFactor = 1; // Коэффициент замедления (чем ближе к 1, тем плавнее)
 
       if (currentSpeed > maxSpeed) {
         let scale = maxSpeed / currentSpeed; // Ограничиваем скорость
@@ -261,11 +275,15 @@ export class MyRoom extends Room<MyState> {
     this.state.entities.forEach((entity, key) => {
       const body = this.entities.get(key);
 
-      if (body) {
+      
+      if (this.world.bodies.includes(body)) {
         entity.x = body.position.x;
         entity.y = body.position.y;
+        entity.vx = body.velocity.x;
+        entity.vy = body.velocity.y;
       } else {
         this.state.entities.delete(key);
+        this.entities.delete(key);
       }
 
     });
@@ -293,14 +311,14 @@ export class MyRoom extends Room<MyState> {
       player.y = (Math.random() * -mapHeight);
     }
 
-    let name;
-    if (this.countClients <= this.names.length) {
-      name = this.names[this.countClients - 1];
-    } else {
-      name = this.names[Math.floor(Math.random() * this.names.length)];
-    }
-
-    player.name = name;
+    // let name;
+    // if (this.countClients <= this.names.length) {
+    //   name = this.names[this.countClients - 1];
+    // } else {
+    //   name = this.names[Math.floor(Math.random() * this.names.length)];
+    // }
+    // player.name = name;
+    
     this.countClients += 1;
 
     // const entity = new Entity();

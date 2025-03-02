@@ -210,7 +210,7 @@ export default class Star {
         const x = centerX + radius * Math.cos(angle);
         const y = centerY + radius * Math.sin(angle);
 
-        const shot = Matter.Bodies.circle(x, y, 10);
+        let shot = Matter.Bodies.circle(x, y, 10);
         shot.owner = this;
         shot.label = 'shot';
         shot.mass = 0.1;
@@ -234,7 +234,6 @@ export default class Star {
     }
 
     minusHealth() {
-        console.log('minusHealth')
 
         if (this.isImmortal) return;
 
