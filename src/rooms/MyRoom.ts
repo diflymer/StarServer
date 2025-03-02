@@ -52,6 +52,11 @@ export class MyRoom extends Room<MyState> {
       this.handleCollisions(event)
     })
 
+    this.onMessage("ping", (client) => {
+      // Отправляем ответ "pong" с меткой времени
+      client.send("pong", Date.now());
+    });
+
     // this.onMessage(0, (client, payload) => {
     //   // get reference to the player who sent the message
     //   const player = this.state.players.get(client.sessionId);
@@ -275,7 +280,7 @@ export class MyRoom extends Room<MyState> {
     this.state.entities.forEach((entity, key) => {
       const body = this.entities.get(key);
 
-      
+
       if (this.world.bodies.includes(body)) {
         entity.x = body.position.x;
         entity.y = body.position.y;
@@ -318,7 +323,7 @@ export class MyRoom extends Room<MyState> {
     //   name = this.names[Math.floor(Math.random() * this.names.length)];
     // }
     // player.name = name;
-    
+
     this.countClients += 1;
 
     // const entity = new Entity();
