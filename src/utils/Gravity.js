@@ -12,10 +12,12 @@ export default class Gravity {
 
         bodies.forEach((body1) => {
             if (body1.label === 'notGravity') return;
+            if (body1.isStatic) return;
 
             bodies.forEach((body2) => {
                 if (body1 === body2) return;
                 if (body2.label === 'notGravity') return;
+                if (body1.isStatic) return;
 
                 const dx = body2.position.x - body1.position.x; // Разница по оси X
                 const dy = body2.position.y - body1.position.y; // Разница по оси Y

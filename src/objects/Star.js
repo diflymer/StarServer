@@ -2,7 +2,8 @@ import Matter from "matter-js"; // Подключаем Matter.js
 
 export default class Star {
     clientId;
-    constructor(world, x, y) {
+    constructor(room, world, x, y) {
+        this.room = room;
         this.world = world;
 
         this.body = Matter.Bodies.circle(x, y, 15)
@@ -60,58 +61,52 @@ export default class Star {
 
     }
 
-    clearForce() {
-        this.setVelocity(0, 0);
-        this.setAngularVelocity(0);
-    }
+    // minusHealth() {
 
-    minusHealth() {
+    //     if (this.isImmortal) return;
 
-        if (this.isImmortal) return;
+    //     if (this.health > 1) {
 
-        if (this.health > 1) {
-
-            this.health--;
+    //         this.health--;
 
 
-        } else {
-            this.setPosition(0, 0);
-            this.clearForce();
-            this.health = this.maxHealth;
-        }
+    //     } else {
+    //         this.dead();
+    //     }
 
-        this.isImmortal = true;
-        this.scene.time.delayedCall(2000, () => {
-            this.isImmortal = false;
-        });
-        //this.scene.events.emit('starHealthChanged', this.health, this.maxHealth);
+    //     this.isImmortal = true;
+    //     this.scene.time.delayedCall(2000, () => {
+    //         this.isImmortal = false;
+    //     });
+    //     //this.scene.events.emit('starHealthChanged', this.health, this.maxHealth);
 
-    }
-
-    minusHealthAndTp(x, y) {
-
-        if (this.isImmortal) return;
-
-        if (this.health > 1) {
-
-            this.health--;
-            this.setPosition(x, y);
+    // }
 
 
-        } else {
-            this.setPosition(0, 0);
-            this.health = this.maxHealth;
-        }
+    // minusHealthAndTp(x, y) {
 
-        this.clearForce();
+    //     if (this.isImmortal) return;
 
-        this.isImmortal = true;
-        this.scene.time.delayedCall(2000, () => {
-            this.isImmortal = false;
-        });
-        this.scene.events.emit('starHealthChanged', this.health, this.maxHealth);
+    //     if (this.health > 1) {
 
-    }
+    //         this.health--;
+    //         this.setPosition(x, y);
+
+
+    //     } else {
+    //         this.setPosition(0, 0);
+    //         this.health = this.maxHealth;
+    //     }
+
+    //     this.clearForce();
+
+    //     this.isImmortal = true;
+    //     this.scene.time.delayedCall(2000, () => {
+    //         this.isImmortal = false;
+    //     });
+    //     this.scene.events.emit('starHealthChanged', this.health, this.maxHealth);
+
+    // }
 
     dash(dist) {
         const dashForce = 1.5;
@@ -219,7 +214,7 @@ export default class Star {
 
         Matter.World.add(this.world, shot);
         // Устанавливаем скорость
-        
+
         Matter.Body.setAngularVelocity(shot, 0.1);
 
         const speed = 10; // Начальная скорость пули
@@ -242,17 +237,51 @@ export default class Star {
             this.health--;
 
         } else {
-            const x = Math.floor(Math.random() * (4000 - (-4000) + 1)) + (-4000);
-            const y = Math.floor(Math.random() * (4000 - (-4000) + 1)) + (-4000);
-            Matter.Body.setPosition(this.body, { x, y });
-            this.clearForce();
-            this.health = this.maxHealth;
+            this.health--;
+            this.dead()
         }
 
         this.isImmortal = true;
         setTimeout(() => {
             this.isImmortal = false;
         }, 2000);
+
+    }
+
+
+    dead() {
+
+        const player = this.room.state.players.get(this.clientId)
+        if (player) {
+            player.dead = true;
+            this.room.broadcast('playerDead', {
+                ownerId: this.clientId
+            })
+            this.body.isStatic = true;
+    
+            setTimeout(() => {
+                this.respawn();
+            }, 3000)
+        }
+    }
+
+    respawn() {
+        const player = this.room.state.players.get(this.clientId)
+        if (player){
+            player.dead = false;
+
+            this.room.broadcast('playerRespawn', {
+                ownerId: this.clientId,
+                maxHealth:this.maxHealth,
+            })
+            this.body.isStatic = false;
+    
+            const x = Math.floor(Math.random() * (4000 - (-4000) + 1)) + (-4000);
+            const y = Math.floor(Math.random() * (4000 - (-4000) + 1)) + (-4000);
+            Matter.Body.setPosition(this.body, { x, y });
+            this.clearForce();
+            this.health = this.maxHealth;
+        }
 
     }
 

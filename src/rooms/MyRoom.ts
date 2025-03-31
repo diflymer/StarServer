@@ -3,10 +3,10 @@ import { v4 as uuidv4 } from "uuid";
 import Matter from "matter-js"; // Подключаем Matter.js
 
 import { Room, Client } from "@colyseus/core";
-import { MyRoomState } from "./schema/MyRoomState";
 import { MyState, Player, Entity } from "./MyState";
 
 import Star from '../objects/Star';
+import DarkHole from "../objects/DarkHole";
 
 import Gravity from '../utils/Gravity';
 
@@ -17,7 +17,7 @@ export class MyRoom extends Room<MyState> {
   starBody!: Star;
   gravity!: Gravity;
 
-  maxClients = 16;
+  maxClients = 8;
   countClients = 0;
 
   names = ['Водичка', 'Звезда', 'Огонёк', 'Камень', 'Петух', 'Тюремщик', 'Водка', 'Коллайдер']
@@ -36,6 +36,13 @@ export class MyRoom extends Room<MyState> {
     this.world.gravity.y = 0;
 
     this.gravity = new Gravity(this);
+
+    new DarkHole(this, this.world, 0, 0);
+    new DarkHole(this, this.world, -3400, -2500);
+    new DarkHole(this, this.world, 400, -4000);
+    new DarkHole(this, this.world, -4000, 500);
+    new DarkHole(this, this.world, 2000, -1000);
+
 
     let elapsedTime = 0;
     this.setSimulationInterval((deltaTime) => {
@@ -226,9 +233,6 @@ export class MyRoom extends Room<MyState> {
 
     Matter.Engine.update(this.engine, fixedTimeStep);
 
-    // Двигаем объект (пример: небольшая сила влево)
-    //Matter.Body.applyForce(this.starBody, this.starBody.position, { x: -0.0005, y: 0 });
-
     this.gravity.applyGravity(this.world);
 
     this.state.players.forEach((player, key) => {
@@ -330,7 +334,7 @@ export class MyRoom extends Room<MyState> {
     // entity.x = (Math.random() * mapWidth);
     // entity.y = (Math.random() * mapHeight);
 
-    const star = new Star(this.world, player.x, player.y);
+    const star = new Star(this, this.world, player.x, player.y);
     star.clientId = client.sessionId;
 
     const uniqueId = client.sessionId;
@@ -347,6 +351,9 @@ export class MyRoom extends Room<MyState> {
     this.countClients -= 1;
     console.log(client.sessionId, "left!");
 
+    const star = this.entities.get(client.sessionId);
+    Matter.World.remove(this.world, star);
+    this.entities.delete(client.sessionId);
     this.state.players.delete(client.sessionId);
   }
 
@@ -388,6 +395,22 @@ export class MyRoom extends Room<MyState> {
           hittedHealth: bodyA.owner.health,
           hittedMaxHealth: bodyA.owner.maxHealth,
         });
+      }
+
+      if (bodyA.label === 'darkHole' || bodyB.label === 'darkHole') {
+
+        const objectBody = bodyA.label === 'darkHole' ? bodyB : bodyA;
+
+        if (objectBody.label === 'star') {
+          const star = objectBody.owner;
+          star.dead();
+
+        } else {
+          if (objectBody) {
+            Matter.World.remove(this.world, objectBody)
+          }
+        }
+
       }
 
     });

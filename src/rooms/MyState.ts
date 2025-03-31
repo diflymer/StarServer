@@ -7,10 +7,11 @@ export class Player extends Schema {
     @type("number") vy: number = 0;
     @type("number") angle: number = 0;
 
-    @type("string") name: string = null;
+    @type("string") name: string = 'noname';
     @type("number") score: number = 0;
     @type("number") health: number = 3;
     @type("number") maxHealth: number = 3;
+    @type("boolean") dead: boolean = false;
 }
 
 export class Entity extends Schema {
